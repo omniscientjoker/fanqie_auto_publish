@@ -3,9 +3,19 @@
 ## 环境准备
 
 ```bash
-pip install playwright pillow
+pip install -r requirements.txt
 playwright install chromium
 ```
+
+## 快速开始
+
+```bash
+# 1. 启动 GUI
+python3 main_webview.py
+```
+
+首次进入后，如果程序检测不到有效登录凭证，会在界面内提示登录并获取 `data/state.json`。
+`python3 login.py` 仅作为手动登录入口保留，不再是默认必经步骤。
 
 ## 运行入口
 
