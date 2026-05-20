@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 > nul
-cd /d "%~dp0"
+cd /d "%~dp0\.."
 echo ===========================================
 echo 番茄发文助手 Electron版 (PyWebView) 一键打包
 echo ===========================================
@@ -26,11 +26,11 @@ if errorlevel 1 goto build_failed
 echo.
 echo 开始打包成独立桌面软件...
 :: 注意这里需要将 web 文件夹一同打包进去
-py -3 -m PyInstaller --clean --noconfirm -F -w -i "logo.ico" --add-data "web;web" -n FanqiePublisher_PRO main_webview.py
+py -3 -m PyInstaller --clean --noconfirm -F -w -i "assets\\logo.ico" --add-data "app\\web;app\\web" -n FanqiePublisher_PRO main_webview.py
 if errorlevel 1 goto build_failed
 echo.
 echo 正在为您生成桌面快捷方式...
-powershell -Command "$s=(New-Object -COM WScript.Shell).CreateShortcut('%USERPROFILE%\Desktop\番茄发文大魔王.lnk');$s.TargetPath='%CD%\dist\FanqiePublisher_PRO.exe';$s.WorkingDirectory='%CD%';$s.IconLocation='%CD%\logo.ico';$s.Save()"
+powershell -Command "$s=(New-Object -COM WScript.Shell).CreateShortcut('%USERPROFILE%\Desktop\番茄发文大魔王.lnk');$s.TargetPath='%CD%\dist\FanqiePublisher_PRO.exe';$s.WorkingDirectory='%CD%';$s.IconLocation='%CD%\assets\logo.ico';$s.Save()"
 echo 桌面快捷方式已成功创建！
 echo.
 echo ===========================================

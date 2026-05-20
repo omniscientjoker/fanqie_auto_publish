@@ -113,32 +113,6 @@
         </h1>
       </div>
 
-      <!-- Center Space -->
-      <div class="flex-1 flex flex-col max-w-[650px] items-center justify-center px-2 no-drag">
-          <div class="w-full flex items-center space-x-3">
-          <!-- Source -->
-          <div class="flex items-center flex-1 bg-slate-50 border border-slate-200 rounded-lg overflow-hidden h-9 shadow-inner transition-colors hover:border-slate-300 focus-within:border-accent-400 focus-within:ring-1 focus-within:ring-accent-400">
-              <button id="btn-open-source" title="打开草稿来源目录" aria-label="打开草稿来源目录" class="h-full bg-white hover:bg-slate-50 px-3 transition-colors border-r border-slate-200 text-slate-400 hover:text-accent-600 focus:outline-none shrink-0 group">
-                  <i class="fa-solid fa-folder-tree group-hover:text-accent-500 transition-colors duration-300"></i>
-              </button>
-              <input type="text" id="source-dir-input" readonly value="" placeholder="草稿来源目录（待发布TXT）" class="w-full h-full bg-transparent text-slate-600 placeholder-slate-400 font-semibold px-3 text-[11px] tracking-wide outline-none cursor-not-allowed pointer-events-none truncate transition-colors duration-300" />
-              <button id="btn-choose-source-dir" class="h-full bg-white hover:bg-slate-50 text-slate-600 hover:text-accent-600 px-4 transition-colors border-l border-slate-200 font-bold pointer-events-auto whitespace-nowrap focus:outline-none text-[11px] shrink-0 tracking-wider">选草稿目录</button>
-          </div>
-
-          <i class="fa-solid fa-arrow-right-long text-slate-300 text-[10px] shrink-0 mx-1"></i>
-
-          <!-- Archive -->
-          <div class="flex items-center flex-1 bg-slate-50 border border-slate-200 rounded-lg overflow-hidden h-9 shadow-inner transition-colors hover:border-slate-300 focus-within:border-accent-400 focus-within:ring-1 focus-within:ring-accent-400">
-              <button id="btn-open-data" title="打开发布归档目录" aria-label="打开发布归档目录" class="h-full bg-white hover:bg-slate-50 px-3 transition-colors border-r border-slate-200 text-slate-400 hover:text-accent-600 focus:outline-none shrink-0 group">
-                  <i class="fa-solid fa-box-archive group-hover:text-accent-500 transition-colors duration-300"></i>
-              </button>
-              <input type="text" id="archive-dir-input" readonly value="" placeholder="发布归档目录（已发布章节归档）" class="w-full h-full bg-transparent text-slate-600 placeholder-slate-400 font-semibold px-3 text-[11px] tracking-wide outline-none cursor-not-allowed pointer-events-none truncate transition-colors duration-300" />
-              <button id="btn-choose-dir" class="h-full bg-white hover:bg-slate-50 text-slate-600 hover:text-accent-600 px-4 transition-colors border-l border-slate-200 font-bold pointer-events-auto whitespace-nowrap focus:outline-none text-[11px] shrink-0 tracking-wider">选归档目录</button>
-          </div>
-          </div>
-          <p class="w-full mt-1 text-[10px] text-slate-400 font-semibold tracking-wide text-center">左侧为草稿来源目录，右侧为发布归档目录</p>
-      </div>
-
       <!-- Right Actions -->
       <div class="flex text-sm h-full items-center shrink-0 no-drag">
         <button id="btn-open-theme" class="bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 hover:text-accent-600 shadow-sm transition-all duration-300 px-3 py-1.5 rounded-lg text-[11px] flex items-center gap-1.5 font-bold mr-3">
@@ -155,93 +129,138 @@
     </header>
 
     <!-- Main Content Grid -->
-    <div class="flex-1 flex overflow-hidden p-6 gap-6 relative z-10 max-w-[1200px] mx-auto w-full">
+    <div class="flex-1 flex overflow-hidden p-4 gap-4 relative z-10 max-w-[1320px] mx-auto w-full">
       <!-- Left Panel: Settings -->
-      <div class="w-1/3 min-w-[340px] bg-white rounded-2xl border border-slate-200 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] flex flex-col shrink-0 overflow-y-auto hidden-scrollbar">
-        <div class="p-5 border-b border-slate-100 flex items-center justify-between shrink-0">
+      <div class="w-[300px] min-w-[300px] bg-white rounded-2xl border border-slate-200 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] flex flex-col shrink-0 overflow-y-auto hidden-scrollbar">
+        <div class="px-4 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
           <h2 class="text-[13px] font-bold tracking-widest text-slate-700 uppercase flex items-center gap-2">
             <i class="fa-solid fa-sliders text-accent-500 transition-colors duration-500"></i> 数据流与参数
           </h2>
         </div>
 
-        <div class="p-6 flex flex-col gap-6 flex-1">
-          <!-- Book Select -->
-          <div>
-            <div class="flex justify-between items-center mb-2.5">
-              <label class="block text-[12px] font-bold text-slate-600 tracking-wide">选择待发小说</label>
-              <div class="flex gap-2 shrink-0">
-                <button id="btn-example" class="text-[10px] text-amber-500 hover:text-amber-600 hover:bg-amber-50 px-2 py-1 rounded transition-colors flex items-center gap-1.5 font-bold uppercase tracking-wider">
-                  <i class="fa-solid fa-lightbulb"></i> 排版规范
-                </button>
-                <button id="btn-refresh" class="text-[10px] text-slate-500 hover:text-accent-600 hover:bg-slate-50 px-2 py-1 rounded transition-colors flex items-center gap-1.5 font-bold uppercase tracking-wider">
-                  <i class="fa-solid fa-rotate-right" id="refresh-icon"></i> 刷新列表
-                </button>
-              </div>
+        <div class="px-4 py-4 flex flex-col gap-4 flex-1">
+          <section class="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 flex flex-col gap-4">
+            <div class="flex items-center justify-between gap-3">
+              <h3 class="text-[12px] font-bold tracking-wide text-slate-700 flex items-center gap-2">
+                <i class="fa-solid fa-books text-accent-500"></i> 本地书库
+              </h3>
+              <button id="btn-sync-local" class="text-[10px] text-indigo-600 hover:bg-indigo-50 border border-indigo-200 px-2.5 py-1.5 rounded-lg font-bold whitespace-nowrap">同步本地书库</button>
             </div>
-            <div class="relative group" id="custom-select-container">
-              <button id="custom-select-trigger" class="w-full flex justify-between items-center bg-slate-50 border border-slate-200 focus:border-accent-500 focus:ring-1 text-slate-700 rounded-xl p-3 text-[13px] font-bold cursor-pointer transition-colors shadow-inner">
-                <span id="custom-select-text" class="truncate">正在载入环境...</span>
-                <i class="fa-solid fa-chevron-down text-slate-400 text-[10px] transition-transform duration-200" id="custom-select-arrow"></i>
-              </button>
-              
-              <!-- Custom Dropdown Menu -->
-              <div id="custom-select-dropdown" class="absolute left-0 right-0 top-[calc(100%+4px)] bg-white border border-slate-200 rounded-xl shadow-xl z-[60] hidden opacity-0 transition-opacity duration-200 max-h-56 overflow-y-auto hidden-scrollbar py-1.5 focus:outline-none">
-              </div>
 
-              <!-- Hidden native select for script compat -->
-              <select id="book-select" class="hidden">
-                <option value="">正在载入环境...</option>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 tracking-wide mb-2">草稿来源目录</label>
+              <div class="flex items-center w-full bg-white border border-slate-200 rounded-xl overflow-hidden h-10 shadow-inner transition-colors hover:border-slate-300 focus-within:border-accent-400 focus-within:ring-1 focus-within:ring-accent-400">
+                <button id="btn-open-source" title="打开草稿来源目录" aria-label="打开草稿来源目录" class="h-full bg-white hover:bg-slate-50 px-3 transition-colors border-r border-slate-200 text-slate-400 hover:text-accent-600 focus:outline-none shrink-0 group">
+                  <i class="fa-solid fa-folder-tree group-hover:text-accent-500 transition-colors duration-300"></i>
+                </button>
+                <input type="text" id="source-dir-input" readonly value="" placeholder="选择多本书根目录，例如 mybook" class="w-full h-full bg-transparent text-slate-600 placeholder-slate-400 font-semibold px-3 text-[11px] tracking-wide outline-none cursor-not-allowed pointer-events-none truncate transition-colors duration-300" />
+                <button id="btn-choose-source-dir" class="h-full bg-white hover:bg-slate-50 text-slate-600 hover:text-accent-600 px-4 transition-colors border-l border-slate-200 font-bold pointer-events-auto whitespace-nowrap focus:outline-none text-[11px] shrink-0 tracking-wider">选择目录</button>
+              </div>
+              <p class="mt-2 text-[10px] text-slate-400 font-semibold tracking-wide">支持 多本书 / 多卷 / md 或 txt 章节</p>
+            </div>
+
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 tracking-wide mb-2">本地书选择</label>
+              <select id="local-book-select" class="block w-full bg-white border border-slate-200 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 text-slate-700 text-[13px] font-bold rounded-xl p-3 shadow-inner transition-colors">
+                <option value="">请先选择草稿目录</option>
               </select>
             </div>
-            <p id="book-status" class="mt-2 text-[11px] text-slate-400 tracking-wide font-['JetBrains_Mono',monospace] font-semibold"></p>
-          </div>
 
-          <!-- Publish Count -->
-          <div>
-            <p id="published-volume-status" class="mb-2 text-[11px] text-slate-500 font-semibold tracking-wide">已发布卷数：0 卷</p>
-            <label class="block text-[12px] font-bold text-slate-600 tracking-wide mb-2.5">发布章节数量</label>
-            <input type="number" id="publish-count" placeholder="留空则发布全部" class="block w-full bg-slate-50 border border-slate-200 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 text-slate-700 text-[13px] font-bold rounded-xl p-3 shadow-inner transition-colors placeholder-slate-400" />
-          </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 tracking-wide mb-2">本地卷选择</label>
+              <select id="local-volume-select" class="block w-full bg-white border border-slate-200 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 text-slate-700 text-[13px] font-bold rounded-xl p-3 shadow-inner transition-colors">
+                <option value="默认卷">默认卷</option>
+              </select>
+            </div>
+          </section>
 
-          <!-- Volume Set -->
-          <div>
-            <label class="block text-[12px] font-bold text-slate-600 tracking-wide mb-2.5">指定目标归档分卷 (选填)</label>
-            <input type="number" id="volume-num" placeholder="例如: 2 (代表第二卷)" class="block w-full bg-slate-50 border border-slate-200 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 text-slate-700 text-[13px] font-bold rounded-xl p-3 shadow-inner transition-colors placeholder-slate-400" />
-            <p class="mt-2 text-[11px] text-slate-400 font-semibold tracking-wide">不填则不切换，默认归纳到上一次使用的卷</p>
-          </div>
+          <section class="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 flex flex-col gap-4">
+            <div class="flex items-center justify-between gap-3">
+              <h3 class="text-[12px] font-bold tracking-wide text-slate-700 flex items-center gap-2">
+                <i class="fa-solid fa-cloud text-accent-500"></i> 远端书库
+              </h3>
+              <button id="btn-sync-remote" class="text-[10px] text-emerald-600 hover:bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 rounded-lg font-bold whitespace-nowrap">同步后台书库</button>
+            </div>
 
-          <div class="mt-auto pt-6 border-t border-slate-100 flex flex-col gap-3">
-            <button id="btn-start" class="w-full bg-accent-600 hover:bg-accent-700 text-white font-black tracking-widest py-4 px-4 rounded-xl flex items-center justify-center gap-3 transition-all duration-300 transform active:scale-[0.98] shadow-lg shadow-accent-600/30 ring-1 ring-accent-500/50">
-              <i class="fa-solid fa-satellite-dish animate-pulse"></i> 启动全自动发文
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 tracking-wide mb-2">后台书选择</label>
+              <div class="flex items-center gap-2">
+                <select id="remote-book-select" class="flex-1 block bg-white border border-slate-200 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 text-slate-700 text-[13px] font-bold rounded-xl p-3 shadow-inner transition-colors">
+                  <option value="">请先同步后台书库</option>
+                </select>
+                <button id="btn-sync-catalog" class="text-[11px] text-cyan-600 hover:bg-cyan-50 border border-cyan-200 px-3 py-3 rounded-xl font-bold whitespace-nowrap">同步卷和章节</button>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 tracking-wide mb-2">后台目标分卷</label>
+              <select id="remote-volume-select" class="block w-full bg-white border border-slate-200 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 text-slate-700 text-[13px] font-bold rounded-xl p-3 shadow-inner transition-colors">
+                <option value="">可选：先同步卷和章节</option>
+              </select>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- Right Panel: Logs -->
+      <div class="flex-1 flex flex-col gap-6 overflow-hidden">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] flex flex-col overflow-hidden min-h-[280px]">
+          <div class="sticky top-0 z-10 flex justify-between items-center px-4 py-3 border-b border-slate-100 bg-white/95 backdrop-blur">
+            <div class="flex flex-col gap-1 min-w-0">
+              <h3 class="text-[13px] font-bold tracking-widest text-slate-700 uppercase flex items-center gap-2">
+                <i class="fa-solid fa-table-list text-accent-500"></i> 章节对比表
+              </h3>
+              <div id="target-summary" class="text-[10px] text-slate-500 font-semibold tracking-wide truncate">目标：未选择</div>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap justify-end">
+              <button id="btn-open-log-modal" class="w-9 h-9 flex items-center justify-center text-slate-500 hover:text-accent-600 hover:bg-slate-100 border border-slate-200 bg-white rounded-lg shadow-sm" title="查看日志" aria-label="查看日志">
+                <i class="fa-solid fa-terminal text-sm"></i>
+              </button>
+              <div class="flex rounded-lg border border-slate-200 overflow-hidden">
+                <button id="btn-view-all" class="px-3 py-1.5 text-[11px] font-bold bg-accent-50 text-accent-700">全部</button>
+                <button id="btn-view-pending" class="px-3 py-1.5 text-[11px] font-bold bg-white text-slate-500">待上传</button>
+                <button id="btn-view-conflicts" class="px-3 py-1.5 text-[11px] font-bold bg-white text-slate-500">冲突</button>
+                <button id="btn-view-matched" class="px-3 py-1.5 text-[11px] font-bold bg-white text-slate-500">已匹配</button>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button id="btn-select-uploadable" class="text-[10px] text-emerald-600 hover:bg-emerald-50 border border-emerald-200 px-2 py-1 rounded font-bold">仅选可上传</button>
+                <button id="btn-clear-selection" class="text-[10px] text-slate-600 hover:bg-slate-100 border border-slate-200 px-2 py-1 rounded font-bold">清空</button>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <input id="latest-count-input" type="number" min="1" value="10" class="w-20 bg-slate-50 border border-slate-200 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 text-slate-700 text-[12px] font-bold rounded-lg px-3 py-2 shadow-inner transition-colors" />
+                <button id="btn-select-latest" class="text-[10px] text-indigo-600 hover:bg-indigo-50 border border-indigo-200 px-3 py-2 rounded font-bold">选待上传前 X 章</button>
+              </div>
+              <div id="selection-summary" class="text-[10px] text-slate-500 font-semibold tracking-wide">已选 0 章</div>
+            </div>
+          </div>
+          <div class="overflow-auto flex-1">
+            <table class="w-full text-[12px]">
+              <thead class="sticky top-0 z-[1] bg-slate-50 text-slate-500">
+                <tr>
+                  <th class="text-left px-4 py-2.5 font-bold w-[72px]">选择</th>
+                  <th class="text-left px-4 py-2.5 font-bold w-[92px]">章节号</th>
+                  <th class="text-left px-4 py-2.5 font-bold min-w-[260px]">本地标题</th>
+                  <th class="text-left px-4 py-2.5 font-bold min-w-[260px]">远端标题</th>
+                  <th class="text-left px-4 py-2.5 font-bold w-[120px]">远端状态</th>
+                  <th class="text-left px-4 py-2.5 font-bold w-[140px]">对比结果</th>
+                </tr>
+              </thead>
+              <tbody id="chapter-diff-table-body" class="divide-y divide-slate-100">
+                <tr>
+                  <td colspan="6" class="px-4 py-6 text-slate-400 text-center font-semibold">请先同步后台书库并同步卷和章节</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="sticky bottom-0 bg-white/95 backdrop-blur px-4 py-3 border-t border-slate-100 flex flex-col gap-2">
+            <button id="btn-start" class="w-full bg-accent-600 hover:bg-accent-700 text-white font-black tracking-widest py-3.5 px-4 rounded-xl flex items-center justify-center gap-3 transition-all duration-300 transform active:scale-[0.98] shadow-lg shadow-accent-600/30 ring-1 ring-accent-500/50">
+              <i class="fa-solid fa-satellite-dish animate-pulse"></i> 上传选定章节
             </button>
             <div id="progress-wrapper" class="hidden w-full bg-slate-100 rounded-full h-1.5 shadow-inner relative overflow-hidden">
                 <div id="progress-bar" class="bg-accent-500 h-1.5 rounded-full transition-all duration-500 ease-out w-0 shadow-[0_0_10px_rgba(var(--accent-500),0.8)]"></div>
             </div>
             <p id="progress-text" class="hidden text-[11px] text-right text-slate-400 font-['JetBrains_Mono',monospace] font-bold tracking-widest mt-1">0/0</p>
           </div>
-        </div>
-      </div>
-
-      <!-- Right Panel: Logs -->
-      <div class="flex-1 bg-[#0f172a] rounded-3xl border border-[#1e293b] shadow-2xl flex flex-col overflow-hidden relative group">
-        <div class="absolute top-0 left-0 w-full h-12 bg-gradient-to-b from-black/40 to-transparent pointer-events-none z-10"></div>
-
-        <div class="flex justify-between items-center px-6 py-4 bg-[#1e293b]/50 border-b border-[#334155]/50 z-10 shrink-0">
-          <span class="text-[10px] font-bold tracking-widest text-[#94a3b8] uppercase flex items-center gap-2">
-            <div class="flex gap-1.5 mr-2">
-              <div class="w-2.5 h-2.5 rounded-full bg-rose-500"></div>
-              <div class="w-2.5 h-2.5 rounded-full bg-amber-500"></div>
-              <div class="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
-            </div>
-            运行日志控制台
-          </span>
-          <button id="btn-clear" class="text-[10px] text-[#64748b] hover:text-white transition-colors uppercase tracking-wider font-bold flex items-center gap-1.5">
-            <i class="fa-solid fa-eraser"></i> 清空
-          </button>
-        </div>
-
-        <div id="log-container" class="flex-1 p-6 font-['JetBrains_Mono',monospace] text-[13px] overflow-y-auto text-[#cbd5e1] leading-relaxed whitespace-pre-wrap select-text custom-scroll">
-          <div class="text-[#64748b] fade-in font-semibold">> 系统终端就绪，等待执行。</div>
         </div>
       </div>
     </div>
@@ -333,6 +352,23 @@
       </div>
     </div>
 
+    <div id="log-modal-backdrop" class="fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-[65] flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 no-drag">
+      <div id="log-modal-box" class="bg-[#0f172a] border border-[#1e293b] shadow-2xl rounded-2xl w-full max-w-5xl p-0 transform scale-95 transition-transform duration-300 overflow-hidden">
+        <div class="flex justify-between items-center px-6 py-4 bg-[#1e293b]/80 border-b border-[#334155]/50">
+          <span class="text-[11px] font-bold tracking-widest text-[#cbd5e1] uppercase">运行日志</span>
+          <div class="flex items-center gap-2">
+            <button id="btn-clear-log-modal" class="text-[10px] text-[#94a3b8] hover:text-white border border-[#334155] px-3 py-1.5 rounded font-bold">清空</button>
+            <button id="btn-close-log-modal" class="text-[#94a3b8] hover:text-white w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#334155]">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        </div>
+        <div id="log-container" class="h-[60vh] p-6 font-['JetBrains_Mono',monospace] text-[13px] overflow-y-auto text-[#cbd5e1] leading-relaxed whitespace-pre-wrap select-text custom-scroll">
+          <div class="text-[#64748b] fade-in font-semibold">> 系统终端就绪，等待执行。</div>
+        </div>
+      </div>
+    </div>
+
     <!-- UI Scripts -->
     <script>
       // Theme Modal Toggle Logic
@@ -359,6 +395,7 @@
           if(e.target === themeBackdrop) closeTheme();
       });
     </script>
+    <script src="pywebview_api.js"></script>
     <script src="script.js"></script>
   </body>
 </html>
