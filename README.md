@@ -1,9 +1,20 @@
 # 番茄发文助手
 
+## 环境准备
+
+```bash
+pip install playwright pillow
+playwright install chromium
+```
+
 ## 运行入口
 
 - GUI 主程序：`python3 main_webview.py`
 - 登录凭证获取：`python3 login.py`
+
+详细使用方式见：
+
+- [docs/使用说明.md](/Users/jiangmiao/work_dict/aicode/fanqieAutoPublish/docs/使用说明.md)
 
 ## 目录结构
 
