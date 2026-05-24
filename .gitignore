@@ -22,6 +22,7 @@ Thumbs.db
 
 # 打包构建相关
 build/
+build-support/
 dist/
 *.spec
 

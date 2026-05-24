@@ -26,6 +26,24 @@ python3 main_webview.py
 
 - [docs/使用说明.md](/Users/jiangmiao/work_dict/aicode/fanqieAutoPublish/docs/使用说明.md)
 
+## macOS 应用打包
+
+可以直接生成本地可运行的 macOS `.app`：
+
+```bash
+bash scripts/build_macos_app.sh
+```
+
+生成结果：
+
+- 应用：`dist/FanqiePublisher.app`
+- 图标：`assets/logo.icns`
+
+说明：
+
+- 当前生成的是本地未签名版本，适合本机直接运行
+- macOS 打包后，运行时配置和登录凭证会写入 `~/Library/Application Support/FanqiePublisher`
+
 ## 目录结构
 
 ```text

@@ -1,7 +1,10 @@
 from pathlib import Path
-from playwright.sync_api import sync_playwright
 
-from app.paths import DATA_DIR, STATE_FILE
+from app.paths import DATA_DIR, STATE_FILE, configure_runtime_environment
+
+configure_runtime_environment()
+
+from playwright.sync_api import sync_playwright
 
 
 def login():

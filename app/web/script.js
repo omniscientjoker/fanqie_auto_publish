@@ -2,6 +2,7 @@
 const el = {
     btnOpenSource: document.getElementById('btn-open-source'),
     btnLogin: document.getElementById('btn-login'),
+    btnAuthLogin: document.getElementById('btn-auth-login'),
     btnStart: document.getElementById('btn-start'),
     btnOpenLogModal: document.getElementById('btn-open-log-modal'),
     btnClearLogModal: document.getElementById('btn-clear-log-modal'),
@@ -41,6 +42,8 @@ const el = {
     modalBtnCancel: document.getElementById('modal-btn-cancel'),
     logModalBackdrop: document.getElementById('log-modal-backdrop'),
     logModalBox: document.getElementById('log-modal-box'),
+    authGate: document.getElementById('auth-gate'),
+    workspaceShell: document.getElementById('workspace-shell'),
 };
 
 let currentBooks = [];
@@ -53,6 +56,7 @@ let selectedChapterRowIds = new Set();
 let chapterTableView = 'all';
 let isPublishing = false;
 let selectedLocalBookName = '';
+let loginPollTimer = null;
 
 function getCurrentLocalBook() {
     if (!selectedLocalBookName) {
@@ -72,23 +76,11 @@ window.addEventListener('pywebviewready', async function() {
     appendLog(">>> UI 框架加载成功，已连接 Python 内核 🚀", "text-accent-400 font-bold");
 
     try {
-        const api = await getApiOrThrow({ timeoutMs: 5000, intervalMs: 50 });
-        const config = await api.get_config();
-        if (config && config.source_dir) {
-            el.sourceDirInput.value = config.source_dir;
-            el.sourceDirInput.classList.remove('text-slate-600', 'placeholder-slate-400');
-            el.sourceDirInput.classList.add('text-accent-600');
+        await loadPersistedConfig();
+        const loggedIn = await checkState();
+        if (loggedIn) {
+            await refreshBooks();
         }
-        currentRemoteBooks = Array.isArray(config?.remote_books) ? config.remote_books : [];
-        currentRemoteCatalogs = config?.remote_catalogs && typeof config.remote_catalogs === 'object'
-            ? config.remote_catalogs
-            : {};
-        refreshRemoteBookSelect();
-        refreshRemoteVolumeSelect();
-        updateTargetSummary();
-
-        await refreshBooks();
-        await checkState();
     } catch (e) {
         console.error(e);
         appendLog(`[GUI错误] 初始化 PyWebView 失败: ${e}`, "text-rose-500");
@@ -171,6 +163,103 @@ function toggleUI(disabled) {
         el.progressBar.style.width = '0%';
         checkState();
     }
+}
+
+function applyAuthState(loggedIn) {
+    if (el.authGate) {
+        el.authGate.classList.toggle('hidden', loggedIn);
+        el.authGate.classList.toggle('flex', !loggedIn);
+    }
+    if (el.workspaceShell) {
+        el.workspaceShell.classList.toggle('hidden', !loggedIn);
+        el.workspaceShell.classList.toggle('flex', loggedIn);
+    }
+}
+
+function updateStatusBadge(loggedIn) {
+    if (!el.statusBadge) return;
+    if (loggedIn) {
+        el.statusBadge.innerHTML = `<div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_3px_currentColor]"></div> 就绪`;
+        el.statusBadge.className = "px-3 py-1.5 rounded-lg text-[11px] font-bold tracking-widest bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center gap-2 shadow-sm mr-2";
+    } else {
+        el.statusBadge.innerHTML = `<div class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shadow-[0_0_3px_currentColor]"></div> 未登录`;
+        el.statusBadge.className = "px-3 py-1.5 rounded-lg text-[11px] font-bold tracking-widest bg-rose-50 text-rose-600 border border-rose-200 flex items-center gap-2 shadow-sm mr-2";
+    }
+}
+
+function setLoginLoading(loading) {
+    const loadingHtml = `<i class="fa-solid fa-circle-notch fa-spin"></i> 登录中...`;
+    const idleHeaderHtml = `<i class="fa-solid fa-fingerprint shadow-sm"></i> 重置授权`;
+    const idleGateHtml = `<i class="fa-solid fa-fingerprint"></i> 登录`;
+
+    if (el.btnLogin) {
+        el.btnLogin.disabled = loading;
+        el.btnLogin.innerHTML = loading ? loadingHtml : idleHeaderHtml;
+    }
+    if (el.btnAuthLogin) {
+        el.btnAuthLogin.disabled = loading;
+        el.btnAuthLogin.innerHTML = loading ? loadingHtml : idleGateHtml;
+        el.btnAuthLogin.classList.toggle('opacity-70', loading);
+        el.btnAuthLogin.classList.toggle('cursor-not-allowed', loading);
+    }
+}
+
+function stopLoginPolling() {
+    if (loginPollTimer) {
+        clearInterval(loginPollTimer);
+        loginPollTimer = null;
+    }
+}
+
+async function startLoginPolling() {
+    stopLoginPolling();
+    loginPollTimer = setInterval(async () => {
+        try {
+            const api = await getApiOrThrow({ wait: false });
+            const status = await api.get_login_status();
+            const loggedIn = await api.check_login_state();
+
+            if (loggedIn) {
+                stopLoginPolling();
+                setLoginLoading(false);
+                await checkState();
+                await loadPersistedConfig();
+                await refreshBooks();
+                appendLog(`[SYSTEM] 登录凭证已更新`, "text-emerald-400");
+                return;
+            }
+
+            if (status?.state === 'failed' || status?.state === 'cancelled') {
+                stopLoginPolling();
+                setLoginLoading(false);
+                await checkState();
+                const message = status?.message || '登录未完成，请重试。';
+                await showModal('登录未完成', message, true, false);
+            }
+        } catch (e) {
+            stopLoginPolling();
+            setLoginLoading(false);
+            console.error(e);
+            appendLog(`[GUI错误] 登录状态轮询失败: ${e}`, "text-rose-500");
+        }
+    }, 1000);
+}
+
+async function loadPersistedConfig() {
+    const api = await getApiOrThrow({ timeoutMs: 5000, intervalMs: 50 });
+    const config = await api.get_config();
+    if (config && config.source_dir) {
+        el.sourceDirInput.value = config.source_dir;
+        el.sourceDirInput.classList.remove('text-slate-600', 'placeholder-slate-400');
+        el.sourceDirInput.classList.add('text-accent-600');
+    }
+    currentRemoteBooks = Array.isArray(config?.remote_books) ? config.remote_books : [];
+    currentRemoteCatalogs = config?.remote_catalogs && typeof config.remote_catalogs === 'object'
+        ? config.remote_catalogs
+        : {};
+    refreshRemoteBookSelect();
+    refreshRemoteVolumeSelect();
+    updateTargetSummary();
 }
 
 function getSelectedRemoteBookName() {
@@ -587,15 +676,13 @@ async function checkState() {
     } catch (e) {
         console.error(e);
         appendLog(`[GUI错误] 检查登录状态失败: ${e}`, "text-rose-500");
-        return;
+        applyAuthState(false);
+        updateStatusBadge(false);
+        return false;
     }
-    if (ok) {
-        el.statusBadge.innerHTML = `<div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_3px_currentColor]"></div> 就绪`;
-        el.statusBadge.className = "px-3 py-1.5 rounded-lg text-[11px] font-bold tracking-widest bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center gap-2 shadow-sm mr-2";
-    } else {
-        el.statusBadge.innerHTML = `<div class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shadow-[0_0_3px_currentColor]"></div> 未登录`;
-        el.statusBadge.className = "px-3 py-1.5 rounded-lg text-[11px] font-bold tracking-widest bg-rose-50 text-rose-600 border border-rose-200 flex items-center gap-2 shadow-sm mr-2";
-    }
+    applyAuthState(ok);
+    updateStatusBadge(ok);
+    return ok;
 }
 
 async function refreshBooks() {
@@ -762,21 +849,28 @@ if (el.btnSyncCatalog) el.btnSyncCatalog.addEventListener('click', async () => {
     }
 });
 
-if (el.btnLogin) el.btnLogin.addEventListener('click', async () => {
-    toggleUI(true);
-    el.btnStart.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 等待登录完成...`;
-    
+async function handleLoginClick() {
+    if (isPublishing) return;
+    setLoginLoading(true);
     try {
         const api = await getApiOrThrow({ wait: false });
-        await api.do_login();
+        const loginStarted = await api.do_login();
+        if (loginStarted) {
+            appendLog(`[SYSTEM] 登录浏览器已启动，请在弹出的浏览器中完成登录`, "text-sky-400");
+            await startLoginPolling();
+        } else {
+            setLoginLoading(false);
+            await showModal('登录未启动', '登录流程未能启动，请重试。', true, false);
+        }
     } catch (e) {
         console.error(e);
+        setLoginLoading(false);
         appendLog(`[GUI错误] 登录入口尚未就绪: ${e}`, "text-rose-500");
-    } finally {
-        toggleUI(false);
-        appendLog(`[SYSTEM] 如需按后台书名发布，请点击“同步后台书库”更新目标列表`, "text-sky-400");
     }
-});
+}
+
+if (el.btnLogin) el.btnLogin.addEventListener('click', handleLoginClick);
+if (el.btnAuthLogin) el.btnAuthLogin.addEventListener('click', handleLoginClick);
 
 if (el.btnOpenSource) el.btnOpenSource.addEventListener('click', async () => {
     appendLog('[DEBUG] 点击了 打开草稿来源目录', 'text-sky-400');

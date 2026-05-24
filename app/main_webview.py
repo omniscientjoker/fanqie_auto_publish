@@ -7,9 +7,13 @@ import sys
 import json
 from html import escape
 from pathlib import Path
+from email.utils import parsedate_to_datetime
 import webview
+from app.paths import CONFIG_FILE, DATA_DIR, STATE_FILE, WEB_DIR, configure_runtime_environment
+
+configure_runtime_environment()
+
 from playwright.sync_api import sync_playwright
-from app.paths import CONFIG_FILE, DATA_DIR, STATE_FILE, WEB_DIR
 BOOK_MANAGE_URL = "https://fanqienovel.com/main/writer/book-manage"
 
 PAGE_CONTEXT_PUBLISH_JS = r"""
@@ -105,6 +109,8 @@ class Api:
     def __init__(self):
         self.window = None
         self.config = self.load_config()
+        self.login_status = {"state": "idle", "message": ""}
+        self.login_window = None
 
     @staticmethod
     def _chapter_patterns():
@@ -272,6 +278,16 @@ class Api:
     @staticmethod
     def _create_request_context(playwright):
         return playwright.request.new_context(storage_state=str(STATE_FILE))
+
+    @staticmethod
+    def _launch_browser(playwright, headless):
+        try:
+            return playwright.chromium.launch(headless=headless)
+        except Exception as e:
+            raise RuntimeError(
+                "无法启动内置 Chromium。请确认已安装 Playwright Chromium，"
+                "或重新使用打包脚本生成包含浏览器内核的应用。"
+            ) from e
 
     @classmethod
     def _build_remote_catalog(cls, remote_book_name, volumes, chapters):
@@ -516,6 +532,85 @@ class Api:
                 self.window.evaluate_js(f'window.appendLog("{safe_msg}", "{color}");')
             except Exception as e:
                 print("GUI Eval Error:", e)
+
+    def _set_login_status(self, state, message=""):
+        self.login_status = {"state": state, "message": message}
+
+    def get_login_status(self):
+        return self.login_status
+
+    @staticmethod
+    def _normalize_playwright_cookie(cookie):
+        morsels = list(cookie.values())
+        if not morsels:
+            return None
+
+        morsel = morsels[0]
+        cookie_data = {
+            "name": morsel.key,
+            "value": morsel.value,
+            "path": morsel["path"] or "/",
+            "secure": bool(morsel["secure"]),
+            "httpOnly": bool(morsel["httponly"]),
+        }
+
+        domain = morsel["domain"]
+        if domain:
+            cookie_data["domain"] = domain
+        else:
+            cookie_data["url"] = "https://fanqienovel.com"
+
+        expires = morsel["expires"]
+        if expires:
+            try:
+                cookie_data["expires"] = parsedate_to_datetime(expires).timestamp()
+            except Exception:
+                pass
+
+        same_site = str(morsel["samesite"] or "").strip().lower()
+        if same_site == "lax":
+            cookie_data["sameSite"] = "Lax"
+        elif same_site == "strict":
+            cookie_data["sameSite"] = "Strict"
+        elif same_site == "none":
+            cookie_data["sameSite"] = "None"
+
+        return cookie_data
+
+    def _save_state_from_webview_cookies(self, cookies):
+        playwright_cookies = []
+        for cookie in cookies or []:
+            normalized = self._normalize_playwright_cookie(cookie)
+            if normalized:
+                playwright_cookies.append(normalized)
+
+        if not playwright_cookies:
+            return False
+
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+        with sync_playwright() as p:
+            browser = self._launch_browser(p, headless=True)
+            context = browser.new_context()
+            context.add_cookies(playwright_cookies)
+
+            page = context.new_page()
+            page.goto("https://fanqienovel.com/main/writer/?enter_from=author_zone", timeout=60000)
+            page.wait_for_timeout(2000)
+            context.storage_state(path=str(STATE_FILE))
+
+            request_context = self._create_request_context(p)
+            try:
+                response = request_context.get(
+                    'https://fanqienovel.com/api/author/homepage/book_list/v0/?aid=2503&app_name=muye_novel&page_count=1&page_index=0&image_fmt_list=396x220'
+                )
+                if response.status != 200:
+                    return False
+                payload = response.json()
+                return payload.get("code") == 0 and STATE_FILE.exists()
+            finally:
+                request_context.dispose()
+                browser.close()
 
     def _update_progress(self, current, total):
         if self.window:
@@ -771,58 +866,86 @@ class Api:
         }
 
     def do_login(self):
-        """Login flow with Playwright, runs in background thread to prevent GUI lock"""
+        """Launch login flow and return immediately; frontend polls status."""
+        if self.login_status.get("state") == "in_progress":
+            if self.login_window:
+                try:
+                    self.login_window.show()
+                except Exception:
+                    pass
+            return True
+
         def _login_thread():
             self.log("开始登录授权流程...", "text-indigo-400 font-bold")
+            self._set_login_status("in_progress", "登录浏览器已启动")
             try:
-                with sync_playwright() as p:
-                    try:
-                        # 尝试优先调用系统自带的 Edge 浏览器，解决 PyInstaller 打包后由于路径不对找不到浏览器内核的问题
-                        browser = p.chromium.launch(channel="msedge", headless=False)
-                    except Exception:
-                        try:
-                            # 备用方案：调用系统安装的 Chrome
-                            browser = p.chromium.launch(channel="chrome", headless=False)
-                        except Exception:
-                            # 终极兜底方案
-                            browser = p.chromium.launch(headless=False)
-                    DATA_DIR.mkdir(parents=True, exist_ok=True)
-                    if STATE_FILE.exists():
-                        self.log("发现已有登录凭证，尝试加载...")
-                        context = browser.new_context(storage_state=str(STATE_FILE))
-                    else:
-                        context = browser.new_context()
-                        
-                    page = context.new_page()
-                    self.log("正在强行进入番茄工作台...")
-                    try:
-                        page.goto("https://fanqienovel.com/main/writer/?enter_from=author_zone", timeout=60000)
-                    except Exception as e:
-                        pass
-                        
-                    self.log("【动作需求】请在弹出的浏览器中扫码或输入密码登录！", "text-yellow-400 font-bold")
-                    
-                    # 阻塞直到用户在弹窗点击确定 (调用前端 js await 函数不需要我们管，由于是后台线程直接等待 js 执行完毕不好弄，用 python 原生锁或者继续依赖前端触发即可)
-                    # wait, in eel/webview, evaluate_js does not return a blocking JS promise result natively unless we use call/callbacks.
-                    # Instead, we just show dialog to the user via PyWebView dialog
-                    result = self.window.create_confirmation_dialog('登录确认', '请在浏览器弹出窗口中完成登录操作。\n确认您已经看到作家后台主界面后，点击【确定】以保存状态！\n点击【取消】则放弃保存。')
-                    
-                    if result:
-                        context.storage_state(path=str(STATE_FILE))
-                        self.log(f"✅ 登录凭证已签发，写入成功！", "text-green-400 font-bold")
-                    else:
+                self.login_window = webview.create_window(
+                    '番茄登录',
+                    'https://fanqienovel.com/main/writer/?enter_from=author_zone',
+                    width=980,
+                    height=760,
+                    resizable=True,
+                    text_select=True,
+                    confirm_close=True,
+                )
+                self.log("【动作需求】请在内嵌登录窗口中完成扫码或密码登录！", "text-yellow-400 font-bold")
+
+                deadline = time.time() + 600
+                while time.time() < deadline:
+                    if not self.login_window:
+                        self._set_login_status("cancelled", "登录窗口已关闭")
                         self.log("❌ 登录流程已中止，凭证未保存。", "text-red-400")
-                        
-                    browser.close()
+                        return
+
+                    try:
+                        current_url = self.login_window.get_current_url() or ""
+                    except Exception:
+                        self._set_login_status("cancelled", "登录窗口已关闭")
+                        self.log("❌ 登录流程已中止，凭证未保存。", "text-red-400")
+                        self.login_window = None
+                        return
+
+                    if current_url.startswith("https://fanqienovel.com/main/writer"):
+                        try:
+                            cookies = self.login_window.get_cookies()
+                            saved = self._save_state_from_webview_cookies(cookies)
+                        except Exception as e:
+                            saved = False
+                            self.log(f"登录态桥接失败：{e}", "text-red-500")
+
+                        if saved:
+                            self._set_login_status("succeeded", "登录凭证已保存")
+                            self.log("✅ 登录凭证已签发，写入成功！", "text-green-400 font-bold")
+                            try:
+                                self.login_window.destroy()
+                            except Exception:
+                                pass
+                            self.login_window = None
+                            return
+
+                    time.sleep(1)
+
+                self._set_login_status("failed", "登录等待超时")
+                self.log("登录等待超时，请重试。", "text-red-500")
+                if self.login_window:
+                    try:
+                        self.login_window.destroy()
+                    except Exception:
+                        pass
+                    self.login_window = None
             except Exception as e:
                 self.log(f"登录流程崩溃: {e}", "text-red-500")
+                self._set_login_status("failed", str(e))
+                if self.login_window:
+                    try:
+                        self.login_window.destroy()
+                    except Exception:
+                        pass
+                    self.login_window = None
 
-        # start in thread
+        self._set_login_status("in_progress", "准备启动登录浏览器")
         th = threading.Thread(target=_login_thread, daemon=True)
         th.start()
-        # Python api call blocks until returned!
-        # If we block here, JS `await do_login()` waits until login finishes.
-        th.join() 
         return True
 
 
@@ -893,7 +1016,7 @@ class Api:
             try:
                 with sync_playwright() as p:
                     self.log(" -> 启动静默浏览器上下文...", "text-gray-400")
-                    browser = p.chromium.launch(headless=True)
+                    browser = self._launch_browser(p, headless=True)
                     context = browser.new_context(storage_state=str(STATE_FILE))
                     page = context.new_page()
                     self.log(" -> 打开作者后台主页...", "text-gray-400")
