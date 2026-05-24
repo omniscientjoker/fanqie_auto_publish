@@ -28,7 +28,7 @@ python3 main_webview.py
 
 ## macOS 应用打包
 
-可以直接生成本地可运行的 macOS `.app`：
+可以直接打包 macOS 分发文件：
 
 ```bash
 bash scripts/build_macos_app.sh
@@ -37,7 +37,16 @@ bash scripts/build_macos_app.sh
 生成结果：
 
 - 应用：`dist/FanqiePublisher.app`
+- 选择 `dmg` 时：`dist/FanqiePublisher.dmg`
+- 选择 `pkg` 时：`dist/FanqiePublisher.pkg`
 - 图标：`assets/logo.icns`
+
+也可以直接传参跳过交互：
+
+```bash
+bash scripts/build_macos_app.sh dmg
+bash scripts/build_macos_app.sh pkg
+```
 
 说明：
 
