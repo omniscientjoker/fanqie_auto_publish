@@ -8,10 +8,10 @@ BUNDLE_ID="com.jiangmiao.fanqiepublisher"
 APP_VERSION="1.0.0"
 
 prompt_package_type() {
-  echo "==> 请选择输出格式"
-  echo "1) dmg"
-  echo "2) pkg"
-  printf "输入 1 或 2: "
+  printf '==> 请选择输出格式\n' >&2
+  printf '1) dmg\n' >&2
+  printf '2) pkg\n' >&2
+  printf '输入 1 或 2: ' >&2
   read -r choice
 
   case "$choice" in

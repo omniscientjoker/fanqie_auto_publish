@@ -655,7 +655,12 @@ async function refreshChapterMatchSummary() {
 
     try {
         const api = await getApiOrThrow({ wait: false });
-        const diffData = await api.get_chapter_diff_data(localBook.name, remoteBookName, localVolumeName);
+        const diffData = await api.get_chapter_diff_data(
+            localBook.name,
+            remoteBookName,
+            localVolumeName,
+            el.remoteVolumeSelect?.value?.trim() || null,
+        );
         currentChapterMatchSummary = diffData.summary;
         currentChapterDiffRows = Array.isArray(diffData.rows) ? diffData.rows : [];
         selectedChapterRowIds = new Set(
@@ -708,6 +713,12 @@ el.localVolumeSelect.addEventListener('change', () => {
     refreshChapterMatchSummary();
     updateTargetSummary();
 });
+
+if (el.remoteVolumeSelect) el.remoteVolumeSelect.addEventListener('change', () => {
+    refreshChapterMatchSummary();
+    updateTargetSummary();
+});
+
 if (el.btnOpenLogModal) el.btnOpenLogModal.addEventListener('click', () => {
     openLogModal();
 });

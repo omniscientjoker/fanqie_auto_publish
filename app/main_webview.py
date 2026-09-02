@@ -229,7 +229,7 @@ class Api:
         return result
 
     @staticmethod
-    def _normalize_remote_chapters_from_api(payload):
+    def _normalize_remote_chapters_from_api(payload, volume_id=None, volume_name=None):
         chapters = []
         for item in payload.get("data", {}).get("item_list", []):
             raw_title = str(item.get("title", "")).strip()
@@ -250,6 +250,8 @@ class Api:
                 "chapter_num": chapter_num,
                 "chapter_title": chapter_title,
                 "status": status,
+                "volume_id": str(volume_id or item.get("volume_id", "")).strip(),
+                "volume_name": str(volume_name or item.get("volume_name", "")).strip(),
             })
         return chapters
 
@@ -297,7 +299,9 @@ class Api:
             chapter_num = cls._normalize_chapter_num(chapter.get("chapter_num", ""))
             chapter_title = str(chapter.get("chapter_title", "")).strip()
             status = str(chapter.get("status", "")).strip()
-            key = (chapter_num, chapter_title, status)
+            volume_id = str(chapter.get("volume_id", "")).strip()
+            volume_name = str(chapter.get("volume_name", "")).strip()
+            key = (chapter_num, chapter_title, status, volume_id, volume_name)
             if key in seen:
                 continue
             seen.add(key)
@@ -305,6 +309,8 @@ class Api:
                 "chapter_num": chapter_num,
                 "chapter_title": chapter_title,
                 "status": status,
+                "volume_id": volume_id,
+                "volume_name": volume_name,
             })
 
         return {
@@ -312,6 +318,58 @@ class Api:
             "volumes": cls._dedupe_preserve_order(volumes),
             "chapters": normalized_chapters,
         }
+
+    @staticmethod
+    def _select_remote_volume(remote_catalog, remote_volume_name=None):
+        volume_items = remote_catalog.get("volume_items", []) if isinstance(remote_catalog, dict) else []
+        if not volume_items:
+            return None
+
+        if remote_volume_name:
+            target_volume = next(
+                (
+                    vol for vol in volume_items
+                    if vol.get("volume_name") == remote_volume_name or vol.get("volume_id") == remote_volume_name
+                ),
+                None,
+            )
+            if not target_volume:
+                raise RuntimeError(f"《{remote_catalog.get('book_name', '')}》中找不到分卷《{remote_volume_name}》")
+            return target_volume
+
+        return volume_items[0]
+
+    @classmethod
+    def _filter_remote_chapters_for_volume(cls, remote_catalog, remote_volume_name=None):
+        chapters = list(remote_catalog.get("chapters", [])) if isinstance(remote_catalog, dict) else []
+        target_volume = cls._select_remote_volume(remote_catalog, remote_volume_name)
+        if not target_volume:
+            return None, chapters
+
+        target_volume_id = str(target_volume.get("volume_id", "")).strip()
+        target_volume_label = str(target_volume.get("volume_name", "")).strip()
+
+        has_volume_metadata = any(
+            str(chapter.get("volume_id", "")).strip() or str(chapter.get("volume_name", "")).strip()
+            for chapter in chapters
+        )
+        if not has_volume_metadata:
+            return target_volume, chapters
+
+        filtered = []
+        for chapter in chapters:
+            chapter_volume_id = str(chapter.get("volume_id", "")).strip()
+            chapter_volume_name = str(chapter.get("volume_name", "")).strip()
+            if target_volume_id and chapter_volume_id:
+                if chapter_volume_id == target_volume_id:
+                    filtered.append(chapter)
+                continue
+            if target_volume_label and chapter_volume_name:
+                if chapter_volume_name == target_volume_label:
+                    filtered.append(chapter)
+                continue
+
+        return target_volume, filtered
 
     @classmethod
     def _scan_local_chapter_items(cls, chapter_dir):
@@ -388,9 +446,10 @@ class Api:
         }
 
     @staticmethod
-    def _build_chapter_match_summary(local_book_name, remote_book_name, local_chapters, remote_catalog):
+    def _build_chapter_match_summary(local_book_name, remote_book_name, local_chapters, remote_catalog, remote_volume_name=None):
+        target_volume, remote_chapters = Api._filter_remote_chapters_for_volume(remote_catalog, remote_volume_name)
         remote_by_num = {}
-        for chapter in remote_catalog.get("chapters", []):
+        for chapter in remote_chapters:
             chapter_num = Api._normalize_chapter_num(chapter.get("chapter_num", ""))
             if chapter_num and chapter_num not in remote_by_num:
                 remote_by_num[chapter_num] = chapter
@@ -435,18 +494,21 @@ class Api:
             "local_book_name": local_book_name,
             "remote_book_name": remote_book_name,
             "local_total": len(local_chapters),
-            "remote_total": len(remote_catalog.get("chapters", [])),
+            "remote_total": len(remote_chapters),
             "matched_total": matched_total,
             "pending_total": pending_total,
             "matched_preview": matched_preview,
             "pending_preview": pending_preview,
             "title_conflicts": title_conflicts,
+            "remote_volume_name": str(target_volume.get("volume_name", "")).strip() if target_volume else "",
+            "remote_volume_id": str(target_volume.get("volume_id", "")).strip() if target_volume else "",
         }
 
     @staticmethod
-    def _build_chapter_diff_rows(local_chapters, remote_catalog):
+    def _build_chapter_diff_rows(local_chapters, remote_catalog, remote_volume_name=None):
+        target_volume, remote_chapters = Api._filter_remote_chapters_for_volume(remote_catalog, remote_volume_name)
         remote_by_num = {}
-        for chapter in remote_catalog.get("chapters", []):
+        for chapter in remote_chapters:
             chapter_num = Api._normalize_chapter_num(chapter.get("chapter_num", ""))
             if chapter_num and chapter_num not in remote_by_num:
                 remote_by_num[chapter_num] = chapter
@@ -458,6 +520,7 @@ class Api:
             remote = remote_by_num.get(chapter_num)
             remote_title = str(remote.get("chapter_title", "")).strip() if remote else ""
             remote_status = str(remote.get("status", "")).strip() if remote else ""
+            remote_volume_name = str(remote.get("volume_name", "")).strip() if remote else ""
 
             if not remote:
                 diff_status = "uploadable"
@@ -475,6 +538,7 @@ class Api:
                 "local_title": local_title,
                 "remote_title": remote_title,
                 "remote_status": remote_status,
+                "remote_volume_name": remote_volume_name,
                 "filename": local.get("filename", ""),
                 "diff_status": diff_status,
                 "default_selected": default_selected,
@@ -772,13 +836,14 @@ class Api:
                 all_chapters = []
                 for volume in normalized_volumes:
                     volume_id = volume["volume_id"]
+                    volume_name = volume["volume_name"]
                     chapter_resp = request_context.get(
                         f'https://fanqienovel.com/api/author/chapter/chapter_list/v1?aid=2503&app_name=muye_novel&book_id={book_id}&page_index=0&page_count=500&status=0&must_have_correction_feedback=0&need_correction_feedback_num=1&sort=&volume_id={volume_id}'
                     )
                     if chapter_resp.status != 200:
                         raise RuntimeError(f"章节列表接口失败: HTTP {chapter_resp.status}")
                     chapter_payload = chapter_resp.json()
-                    all_chapters.extend(self._normalize_remote_chapters_from_api(chapter_payload))
+                    all_chapters.extend(self._normalize_remote_chapters_from_api(chapter_payload, volume_id=volume_id, volume_name=volume_name))
 
                 payload = {
                     "book_name": remote_book_name,
@@ -821,7 +886,7 @@ class Api:
         remote_volume_label = str(target_volume.get("volume_name", "")).strip()
         return remote_book_id, remote_volume_id, remote_volume_label
 
-    def get_chapter_match_summary(self, local_book_name, remote_book_name, local_volume_name=None):
+    def get_chapter_match_summary(self, local_book_name, remote_book_name, local_volume_name=None, remote_volume_name=None):
         book_dir = self._resolve_local_book_dir(local_book_name)
         chapter_dir = book_dir if not local_volume_name or local_volume_name == "默认卷" else os.path.join(book_dir, local_volume_name)
         local_chapters = self._scan_local_chapter_items(chapter_dir)
@@ -836,9 +901,10 @@ class Api:
             remote_book_name,
             local_chapters,
             remote_catalog,
+            remote_volume_name,
         )
 
-    def get_chapter_diff_data(self, local_book_name, remote_book_name, local_volume_name=None):
+    def get_chapter_diff_data(self, local_book_name, remote_book_name, local_volume_name=None, remote_volume_name=None):
         book_dir = self._resolve_local_book_dir(local_book_name)
         chapter_dir = book_dir if not local_volume_name or local_volume_name == "默认卷" else os.path.join(book_dir, local_volume_name)
         local_chapters = self._scan_local_chapter_items(chapter_dir)
@@ -853,14 +919,18 @@ class Api:
             remote_book_name,
             local_chapters,
             remote_catalog,
+            remote_volume_name,
         )
-        rows = self._build_chapter_diff_rows(local_chapters, remote_catalog)
+        rows = self._build_chapter_diff_rows(local_chapters, remote_catalog, remote_volume_name)
+
+        selected_remote_volume = self._select_remote_volume(remote_catalog, remote_volume_name)
 
         return {
             "local_book_name": local_book_name,
             "local_volume_name": local_volume_name or "默认卷",
             "remote_book_name": remote_book_name,
             "remote_volumes": remote_catalog.get("volumes", []),
+            "remote_volume_name": str(selected_remote_volume.get("volume_name", "")).strip() if selected_remote_volume else "",
             "summary": summary,
             "rows": rows,
         }
